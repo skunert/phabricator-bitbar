@@ -1,0 +1,28 @@
+{
+  "name": "phabricator-bitbar",
+  "version": "1.0.0",
+  "description": "Shows open diffs in the status bar",
+  "main": "phabricator-bitbar.js",
+  "dependencies": {
+    "bitbar": "^1.3.1",
+    "axios": "^0.19.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skunert/phabricator-bitbar.git"
+  },
+  "keywords": [
+    "phabricator",
+    "bitbar"
+  ],
+  "author": "skunert",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/skunert/phabricator-bitbar/issues"
+  },
+  "homepage": "https://github.com/skunert/phabricator-bitbar#readme"
+}
