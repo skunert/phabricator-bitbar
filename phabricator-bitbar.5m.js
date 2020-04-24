@@ -1,13 +1,9 @@
-#!/usr/bin/env PATH_TO_NODE_EXECUTABLE
+#!/usr/bin/env PATH_TO_NODE
 const config = {
-    // api token for conduit
-    apiToken: null,
-    // your PHID
-    authors: null,
-    // PHIDs that should be used to query diffs you want to review
-    reviewers: null,
-    // host for you conduit api
-    host: null
+    apiToken: 'API_TOKEN',
+    authors: ['YOUR_PHID'],
+    reviewers: ['REVIEW_PHID'],
+    host: 'PHABRICATOR_URL'
 };
 
 const bitbar = require('bitbar');
@@ -73,7 +69,13 @@ const getBuildIcon = (item) => {
     const reviewDiffs = (shouldShowReviewDiffs && diffsToBeReviewedResponse.data.result) || [];
 
     const sortedAuthorDiffs = authorDiffs.sort((i1, i2) => i2.id - i1.id);
-    const header = {text: sortedAuthorDiffs.map(item => `D${item.id} ${getStatusIcon(item)}${getBuildIcon(item)}`).join(' -- ')};
+    let header;
+    if (sortedAuthorDiffs.length > 0) {
+        header = {text: sortedAuthorDiffs.map(item => `D${item.id} ${getStatusIcon(item)}${getBuildIcon(item)}`).join(' -- ')};
+    } else {
+        header = {text: "👀"};
+    }
+
     const finalAuthorDiffs = sortedAuthorDiffs.map(item => [{text: `${getStatusIcon(item)}${getBuildIcon(item)} D${item.id} ${item.title}`, href: item.uri}]).flat();
     const finalReviewDiffs = reviewDiffs.sort((i1, i2) => i2.id - i1.id).map(item => [{text: `D${item.id} ${item.title}`, href: item.uri}]).flat();
 
