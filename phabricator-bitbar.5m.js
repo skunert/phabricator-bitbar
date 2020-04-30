@@ -12,9 +12,9 @@ const axios = require('axios');
 const queryDiff = async (extraParams) => {
     return axios.get(`https://${config.host}/api/differential.query`, {
         params: {
-            ...extraParams,
             status: "status-open",
-            'api.token': config.apiToken
+            'api.token': config.apiToken,
+            ...extraParams,
         }
     });
 }
@@ -37,8 +37,10 @@ const getBuildIcon = (item) => {
             return "✅";
         } else if (status === "failed") {
             return ":x:";
+        } else if (status === null) {
+            return "";
         }
-        return ` ${status} `
+        return `${status}`
     } else {
         return "⏳";
     }
@@ -55,7 +57,7 @@ const getBuildIcon = (item) => {
     const shouldShowReviewDiffs = config.reviewers && config.reviewers.length > 0;
 
     if (shouldShowReviewDiffs) {
-        queriesToWaitOn = queriesToWaitOn.concat(queryDiff({reviewers: config.reviewers}))
+        queriesToWaitOn = queriesToWaitOn.concat(queryDiff({reviewers: config.reviewers, status: 'status-needs-review'}))
     }
 
     const [authorDiffResponse, diffsToBeReviewedResponse] = await Promise.all(queriesToWaitOn);
@@ -69,15 +71,26 @@ const getBuildIcon = (item) => {
     const reviewDiffs = (shouldShowReviewDiffs && diffsToBeReviewedResponse.data.result) || [];
 
     const sortedAuthorDiffs = authorDiffs.sort((i1, i2) => i2.id - i1.id);
+
+    const finalAuthorDiffs = sortedAuthorDiffs.map(item => [
+        {
+            text: `${getStatusIcon(item)}${getBuildIcon(item)} D${item.id} - ${item.title}`, href: item.uri
+        }
+        ]).flat();
+    const finalReviewDiffs = reviewDiffs.sort((i1, i2) => i2.id - i1.id)
+        .filter(item => !config.authors.includes(item.authorPHID))
+        .map(item => [
+        {
+            text: `D${item.id} - ${item.title}`, href: item.uri
+        }
+        ]).flat();
+
     let header;
     if (sortedAuthorDiffs.length > 0) {
-        header = {text: sortedAuthorDiffs.map(item => `D${item.id} ${getStatusIcon(item)}${getBuildIcon(item)}`).join(' -- ')};
+        header = {text: sortedAuthorDiffs.map(item => `D${item.id} ${getStatusIcon(item)}${getBuildIcon(item)}`).join(' -- ') + ` (${finalReviewDiffs.length})`};
     } else {
-        header = {text: "👀"};
+        header = {text: `👀 (${finalReviewDiffs.length})`};
     }
-
-    const finalAuthorDiffs = sortedAuthorDiffs.map(item => [{text: `${getStatusIcon(item)}${getBuildIcon(item)} D${item.id} ${item.title}`, href: item.uri}]).flat();
-    const finalReviewDiffs = reviewDiffs.sort((i1, i2) => i2.id - i1.id).map(item => [{text: `D${item.id} ${item.title}`, href: item.uri}]).flat();
 
     bitbar([
         header,
