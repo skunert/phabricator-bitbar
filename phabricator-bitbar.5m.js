@@ -3,7 +3,9 @@ const config = {
     apiToken: 'API_TOKEN',
     authors: ['YOUR_PHID'],
     reviewers: ['REVIEW_PHID'],
-    host: 'PHABRICATOR_URL'
+    host: 'PHABRICATOR_URL',
+    jenkins: 'JENKINS_PHID',
+    jenkinsUrlRegEx: /regex/g
 };
 
 const bitbar = require('bitbar');
