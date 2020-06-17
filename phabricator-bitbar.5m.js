@@ -87,11 +87,11 @@ const getBuildIcon = (item) => {
     if (item.buildStatus || item.properties && item.properties.buildables) {
         const buildables = Object.entries(item.properties.buildables);
         let status = item.buildStatus ? item.buildStatus : buildables[buildables.length - 1][1].status;
-        if (status === "passed") {
+        if (status === BUILD_STATUS.PASSED) {
             return "✅";
-        } else if (status === "failed") {
+        } else if (status === BUILD_STATUS.FAILED) {
             return "❌";
-        } else if (status === 'inProgress') {
+        } else if (status === BUILD_STATUS.IN_PROGRESS) {
             return "⏳"
         } else if (status === null) {
             return "";
