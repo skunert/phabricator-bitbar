@@ -8,6 +8,16 @@ const config = {
 
 const bitbar = require('bitbar');
 const axios = require('axios');
+const _ = require('lodash');
+
+const BUILD_STATUS = {
+    PASSED: 'passed',
+    PASSED_INDICATOR: 'Jenkins build has passed',
+    IN_PROGRESS: 'inProgress',
+    IN_PROGRESS_INDICATOR: 'Started Jenkins Build',
+    FAILED: 'failed',
+    FAILED_INDICATOR: 'Jenkins build failed.'
+}
 
 const queryDiff = async (extraParams) => {
     return axios.get(`https://${config.host}/api/differential.query`, {
@@ -19,24 +29,68 @@ const queryDiff = async (extraParams) => {
     });
 }
 
+const splitComments = (comments) => {
+    return ({
+        jenkinsComments: comments.filter(comment => comment.authorPHID === config.jenkins),
+        peopleComments: comments.filter(comment => !_.includes([config.jenkins, ...config.authors], comment.authorPHID)),
+    });
+}
+
+const addStatusInfo = (item) => {
+    if (_.isEmpty(item.jenkinsComments)) {
+        return;
+    }
+
+    const lastComment = _.head(item.jenkinsComments).content.raw;
+
+    const matches = lastComment.match(config.jenkinsUrlRegEx);
+    if (!_.isEmpty(matches)) {
+        item.buildUrl = _.head(matches);
+    }
+    if (_.includes(lastComment, BUILD_STATUS.PASSED_INDICATOR)) {
+        item.buildStatus = BUILD_STATUS.PASSED;
+    } else if (_.includes(lastComment, BUILD_STATUS.IN_PROGRESS_INDICATOR)) {
+        item.buildStatus = BUILD_STATUS.IN_PROGRESS;
+    } else if (_.includes(lastComment, BUILD_STATUS.FAILED_INDICATOR)) {
+        item.buildStatus = BUILD_STATUS.FAILED;
+    }
+}
+
 const getStatusIcon = (item) => {
     if (item.statusName === "Accepted") {
         return "✅";
     } else if (item.statusName === "Needs Review") {
         return "⏳";
+    } else if (item.statusName === "Changes Planned") {
+        return "🎧"
     } else {
         return "❓"
     }
 };
 
+const getCommentIcon = (item) => {
+    return _.isEmpty(item.peopleComments.length) ? '': item.peopleComments.length + ':speech_balloon:';
+};
+
+const queryComments = async ({phid}) => {
+    return axios.get(`https://${config.host}/api/transaction.search`, {
+        params: {
+            'api.token': config.apiToken,
+            'objectIdentifier': phid,
+        }
+    });
+}
+
 const getBuildIcon = (item) => {
-    if (item.properties && item.properties.buildables) {
+    if (item.buildStatus || item.properties && item.properties.buildables) {
         const buildables = Object.entries(item.properties.buildables);
-        let status = buildables[buildables.length - 1][1].status;
+        let status = item.buildStatus ? item.buildStatus : buildables[buildables.length - 1][1].status;
         if (status === "passed") {
             return "✅";
         } else if (status === "failed") {
             return ":x:";
+        } else if (status === 'inProgress') {
+            return "⏳"
         } else if (status === null) {
             return "";
         }
@@ -57,7 +111,10 @@ const getBuildIcon = (item) => {
     const shouldShowReviewDiffs = config.reviewers && config.reviewers.length > 0;
 
     if (shouldShowReviewDiffs) {
-        queriesToWaitOn = queriesToWaitOn.concat(queryDiff({reviewers: config.reviewers, status: 'status-needs-review'}))
+        queriesToWaitOn = queriesToWaitOn.concat(queryDiff({
+            reviewers: config.reviewers,
+            status: 'status-needs-review'
+        }))
     }
 
     const [authorDiffResponse, diffsToBeReviewedResponse] = await Promise.all(queriesToWaitOn);
@@ -67,27 +124,65 @@ const getBuildIcon = (item) => {
         return;
     }
 
-    const authorDiffs = authorDiffResponse.data.result || [] ;
+    const authorDiffs = authorDiffResponse.data.result || [];
+
+    const commentResponse = await Promise.all(authorDiffs.map(diff => queryComments({phid: diff.phid})));
+    const comments = _(commentResponse).map(input => input.data.result || [])
+        .map(transactions => transactions.data.filter(transaction => ['comment', 'inline'].includes(transaction.type)))
+        .map(transactions => ({
+            objectPHID: _.head(transactions).objectPHID,
+            comments: transactions.flatMap(t => t.comments)
+        }))
+        .value();
+
     const reviewDiffs = (shouldShowReviewDiffs && diffsToBeReviewedResponse.data.result) || [];
 
-    const sortedAuthorDiffs = authorDiffs.sort((i1, i2) => i2.id - i1.id);
+    const sortedAuthorDiffs = _(authorDiffs).sortBy(['id'])
+        .mergeWith(comments, (authorDiff, comm) => {
+            if (authorDiff.phid === comm.objectPHID) {
+                const {jenkinsComments, peopleComments} = splitComments(comm.comments);
+                authorDiff.jenkinsComments = jenkinsComments;
+                authorDiff.peopleComments = peopleComments;
+                addStatusInfo(authorDiff);
+            }
+            return authorDiff;
+        })
+        .value();
 
-    const finalAuthorDiffs = sortedAuthorDiffs.map(item => [
-        {
-            text: `${getStatusIcon(item)}${getBuildIcon(item)} D${item.id} - ${item.title}`, href: item.uri
+    const finalAuthorDiffs = sortedAuthorDiffs.map(item => {
+        let result = {
+            text: `${getStatusIcon(item)}${getBuildIcon(item)}${getCommentIcon(item)} D${item.id} - ${item.title}`,
+            href: item.uri,
+            submenu: []
+        };
+        if (!_.isEmpty(item.peopleComments)) {
+            result.submenu = [{
+                text: `:speech_balloon: ${item.peopleComments.length} Comments`
+            }]
         }
-        ]).flat();
+        if (!_.isEmpty(item.jenkinsComments)) {
+            if (item.buildUrl) {
+                result.submenu = _.concat(result.submenu, {
+                    text: 'Open Jenkins Job',
+                    href: item.buildUrl
+                });
+            }
+        }
+        return result;
+    });
+
     const finalReviewDiffs = reviewDiffs.sort((i1, i2) => i2.id - i1.id)
         .filter(item => !config.authors.includes(item.authorPHID))
-        .map(item => [
-        {
-            text: `D${item.id} - ${item.title}`, href: item.uri
-        }
-        ]).flat();
+        .map(item =>
+            ({
+                text: `D${item.id} - ${item.title}`,
+                href: item.uri,
+            })
+        ).flat();
 
     let header;
     if (sortedAuthorDiffs.length > 0) {
-        header = {text: sortedAuthorDiffs.map(item => `D${item.id} ${getStatusIcon(item)}${getBuildIcon(item)}`).join(' -- ') + ` (${finalReviewDiffs.length})`};
+        header = {text: sortedAuthorDiffs.map(item => `D${item.id} ${getStatusIcon(item)}${getBuildIcon(item)}${getCommentIcon(item)}`).join(' -- ') + ` (${finalReviewDiffs.length})`};
     } else {
         header = {text: `👀 (${finalReviewDiffs.length})`};
     }
