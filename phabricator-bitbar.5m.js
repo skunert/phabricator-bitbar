@@ -71,7 +71,7 @@ const getStatusIcon = (item) => {
 };
 
 const getCommentIcon = (item) => {
-    return _.isEmpty(item.peopleComments.length) ? '': item.peopleComments.length + ':speech_balloon:';
+    return _.isEmpty(item.peopleComments.length) ? '': item.peopleComments.length + '💬';
 };
 
 const queryComments = async ({phid}) => {
@@ -90,7 +90,7 @@ const getBuildIcon = (item) => {
         if (status === "passed") {
             return "✅";
         } else if (status === "failed") {
-            return ":x:";
+            return "❌";
         } else if (status === 'inProgress') {
             return "⏳"
         } else if (status === null) {
@@ -159,7 +159,7 @@ const getBuildIcon = (item) => {
         };
         if (!_.isEmpty(item.peopleComments)) {
             result.submenu = [{
-                text: `:speech_balloon: ${item.peopleComments.length} Comments`
+                text: `💬 ${item.peopleComments.length} Comments`
             }]
         }
         if (!_.isEmpty(item.jenkinsComments)) {
