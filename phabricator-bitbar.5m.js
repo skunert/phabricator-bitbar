@@ -38,7 +38,7 @@ const splitComments = (comments) => {
     });
 }
 
-const addStatusInfo = (item) => {
+const addBuildStatusInfo = (item) => {
     if (_.isEmpty(item.jenkinsComments)) {
         return;
     }
@@ -71,7 +71,7 @@ const getStatusIcon = (item) => {
 };
 
 const getCommentIcon = (item) => {
-    return _.isEmpty(item.peopleComments.length) ? '': item.peopleComments.length + '💬';
+    return _.isEmpty(item.peopleComments.length) ? '' : item.peopleComments.length + '💬';
 };
 
 const queryComments = async ({phid}) => {
@@ -87,16 +87,16 @@ const getBuildIcon = (item) => {
     if (item.buildStatus || item.properties && item.properties.buildables) {
         const buildables = Object.entries(item.properties.buildables);
         let status = item.buildStatus ? item.buildStatus : buildables[buildables.length - 1][1].status;
-        if (status === BUILD_STATUS.PASSED) {
-            return "✅";
-        } else if (status === BUILD_STATUS.FAILED) {
-            return "❌";
-        } else if (status === BUILD_STATUS.IN_PROGRESS) {
-            return "⏳"
-        } else if (status === null) {
-            return "";
+        switch (status) {
+            case BUILD_STATUS.PASSED:
+                return "✅";
+            case BUILD_STATUS.FAILED:
+                return "❌";
+            case BUILD_STATUS.IN_PROGRESS:
+                return "⏳"
+            default:
+                return status;
         }
-        return `${status}`
     } else {
         return "⏳";
     }
@@ -145,22 +145,22 @@ const getBuildIcon = (item) => {
                 const {jenkinsComments, peopleComments} = splitComments(comm.comments);
                 authorDiff.jenkinsComments = jenkinsComments;
                 authorDiff.peopleComments = peopleComments;
-                addStatusInfo(authorDiff);
+                addBuildStatusInfo(authorDiff);
             }
             return authorDiff;
         })
         .value();
 
     const finalAuthorDiffs = sortedAuthorDiffs.map(item => {
-        let result = {
+        const result = {
             text: `${getStatusIcon(item)}${getBuildIcon(item)}${getCommentIcon(item)} D${item.id} - ${item.title}`,
             href: item.uri,
             submenu: []
         };
         if (!_.isEmpty(item.peopleComments)) {
-            result.submenu = [{
+            result.submenu = _.concat(result.submenu, {
                 text: `💬 ${item.peopleComments.length} Comments`
-            }]
+            });
         }
         if (!_.isEmpty(item.jenkinsComments)) {
             if (item.buildUrl) {
