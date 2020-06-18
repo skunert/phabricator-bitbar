@@ -17,6 +17,7 @@ ln -s $PHABRICATOR-BITBAR_REPO_LOCATION/phabricator-bitbar.5m.js $BITBAR_PLUGIN_
 ```
 
 ### Configuring phabricator-bitbar
+All configuration is done via the `config` object at the beginning of the bitbar file.
 
 For the `host` config, you need to enter the address of the phabricator instance you want to query.
 
@@ -38,6 +39,12 @@ you can copy into the `author` field in `phabricator-bitbar.5m.js`.
 
 ### Configuring which diffs to show for reviews
 In the config you can find a `reviewers` field. You can enter your own phid here to show every diff that shows you as a reviewer. You can also add a phid that identifies your team.
+
+### Configuring comment fetching
+There is the option to show the count of comments in the status bar. Phabricator-bitbar fetches all comments from a diff and tries to filter out comments from bots
+like jenkins. Additionally, we are trying to parse jenkins urls that lead to jobs linked to the diffs. Therefore, we have two configuration properties, `jenkins` and 
+`jenkinsUrlRegEx`. The `jenkins` property is a string that should be set to the PHID under which jenkins is commenting.
+`jenkinsUrlRegEx` should be set to a regular expression that matches job urls that should be extracted from jenkins comments.
 
 ### Configuring the polling interval
 You can configure the interval at which the script is called by renaming it. Find more info on this [here](https://github.com/matryer/bitbar#configure-the-refresh-time).
