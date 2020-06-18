@@ -34,7 +34,7 @@ const queryDiff = async (extraParams) => {
 const splitComments = (comments) => {
     return ({
         jenkinsComments: comments.filter(comment => comment.authorPHID === config.jenkins),
-        peopleComments: comments.filter(comment => !_.includes([config.jenkins, ...config.authors], comment.authorPHID)),
+        devComments: comments.filter(comment => !_.includes([config.jenkins, ...config.authors], comment.authorPHID)),
     });
 }
 
@@ -71,7 +71,7 @@ const getStatusIcon = (item) => {
 };
 
 const getCommentIcon = (item) => {
-    return _.isEmpty(item.peopleComments.length) ? '' : item.peopleComments.length + '💬';
+    return _.isEmpty(item.devComments) ? '' : item.devComments.length + '💬';
 };
 
 const queryComments = async ({phid}) => {
@@ -142,9 +142,9 @@ const getBuildIcon = (item) => {
     const sortedAuthorDiffs = _(authorDiffs).sortBy(['id'])
         .mergeWith(comments, (authorDiff, comm) => {
             if (authorDiff.phid === comm.objectPHID) {
-                const {jenkinsComments, peopleComments} = splitComments(comm.comments);
+                const {jenkinsComments, devComments} = splitComments(comm.comments);
                 authorDiff.jenkinsComments = jenkinsComments;
-                authorDiff.peopleComments = peopleComments;
+                authorDiff.devComments = devComments;
                 addBuildStatusInfo(authorDiff);
             }
             return authorDiff;
@@ -157,9 +157,9 @@ const getBuildIcon = (item) => {
             href: item.uri,
             submenu: []
         };
-        if (!_.isEmpty(item.peopleComments)) {
+        if (!_.isEmpty(item.devComments)) {
             result.submenu = _.concat(result.submenu, {
-                text: `💬 ${item.peopleComments.length} Comments`
+                text: `💬 ${item.devComments.length} Comments`
             });
         }
         if (!_.isEmpty(item.jenkinsComments)) {
