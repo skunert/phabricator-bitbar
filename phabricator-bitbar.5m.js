@@ -84,9 +84,7 @@ const queryComments = async ({phid}) => {
 }
 
 const getBuildIcon = (item) => {
-    if (item.buildStatus || item.properties && item.properties.buildables) {
-        const buildables = Object.entries(item.properties.buildables);
-        let status = item.buildStatus ? item.buildStatus : buildables[buildables.length - 1][1].status;
+    const extractIcon = (status) => {
         switch (status) {
             case BUILD_STATUS.PASSED:
                 return "✅";
@@ -97,6 +95,13 @@ const getBuildIcon = (item) => {
             default:
                 return status;
         }
+    };
+
+    if (item.buildStatus) {
+        return extractIcon(item.buildStatus);
+    } else if (item.properties && item.properties.buildables) {
+        const status = _.last(Object.entries(item.properties.buildables))[1].status;
+        return extractIcon(status)
     } else {
         return "⏳";
     }
