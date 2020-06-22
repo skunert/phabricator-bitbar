@@ -101,7 +101,7 @@ const getBuildIcon = (item) => {
         return extractIcon(item.buildStatus);
     } else if (item.properties && item.properties.buildables) {
         const status = _.last(Object.entries(item.properties.buildables))[1].status;
-        return extractIcon(status)
+        return `!${extractIcon(status)}`
     } else {
         return "⏳";
     }
@@ -136,6 +136,7 @@ const getBuildIcon = (item) => {
     const commentResponse = await Promise.all(authorDiffs.map(diff => queryComments({phid: diff.phid})));
     const comments = _(commentResponse).map(input => input.data.result || [])
         .map(transactions => transactions.data.filter(transaction => ['comment', 'inline'].includes(transaction.type)))
+        .filter(transactions => !_.isEmpty(transactions))
         .map(transactions => ({
             objectPHID: _.head(transactions).objectPHID,
             comments: transactions.flatMap(t => t.comments)
