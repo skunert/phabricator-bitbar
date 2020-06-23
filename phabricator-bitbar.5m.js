@@ -101,7 +101,7 @@ const getBuildIcon = (item) => {
         return extractIcon(item.buildStatus);
     } else if (item.properties && item.properties.buildables) {
         const status = _.last(Object.entries(item.properties.buildables))[1].status;
-        return `!${extractIcon(status)}`
+        return `${extractIcon(status)}`
     } else {
         return "⏳";
     }
@@ -146,11 +146,10 @@ const getBuildIcon = (item) => {
     const reviewDiffs = (shouldShowReviewDiffs && diffsToBeReviewedResponse.data.result) || [];
 
     const sortedAuthorDiffs = _(authorDiffs).sortBy(['id'])
-        .mergeWith(comments, (authorDiff, comm) => {
-            if (authorDiff.phid === comm.objectPHID) {
-                const {jenkinsComments, devComments} = splitComments(comm.comments);
-                authorDiff.jenkinsComments = jenkinsComments;
-                authorDiff.devComments = devComments;
+        .map(authorDiff => {
+            const matchingComments = _.find(comments, ['objectPHID', authorDiff.phid]);
+            if (matchingComments) {
+                _.assign(authorDiff, splitComments(matchingComments.comments));
                 addBuildStatusInfo(authorDiff);
             }
             return authorDiff;
@@ -168,13 +167,11 @@ const getBuildIcon = (item) => {
                 text: `💬 ${item.devComments.length} Comments`
             });
         }
-        if (!_.isEmpty(item.jenkinsComments)) {
-            if (item.buildUrl) {
-                result.submenu = _.concat(result.submenu, {
-                    text: 'Open Jenkins Job',
-                    href: item.buildUrl
-                });
-            }
+        if (item.buildUrl) {
+            result.submenu = _.concat(result.submenu, {
+                text: 'Open Jenkins Job',
+                href: item.buildUrl
+            });
         }
         return result;
     });
