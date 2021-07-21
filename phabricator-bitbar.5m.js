@@ -111,7 +111,7 @@ const getBuildIcon = (item) => {
 
 (async () => {
     if (!config.apiToken || !config.authors || config.authors.length === 0) {
-        bitbar([{text: "Please edit phabricator-bitbar and add api-token and user-phid."}]);
+        console.log("Please edit phabricator-bitbar and add api-token and user-phid.");
         return;
     }
 
@@ -129,7 +129,7 @@ const getBuildIcon = (item) => {
     const [authorDiffResponse, diffsToBeReviewedResponse] = await Promise.all(queriesToWaitOn);
 
     if (authorDiffResponse.status !== 200 || (shouldShowReviewDiffs && diffsToBeReviewedResponse.status !== 200)) {
-        bitbar([{text: `Conduit Problem: received status own diffs=${authorDiffResponse.status} reviews=${diffsToBeReviewedResponse.status}`}]);
+        console.log(`Conduit Problem: received status own diffs=${authorDiffResponse.status} reviews=${diffsToBeReviewedResponse.status}`);
         return;
     }
 
@@ -164,7 +164,6 @@ const getBuildIcon = (item) => {
             href: item.uri,
             submenu: []
         };
-        console.log(item);
         if (!_.isEmpty(item.devComments)) {
             result.submenu = _.concat(result.submenu, {
                 text: `💬 ${item.devComments.length} Comments`
