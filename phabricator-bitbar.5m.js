@@ -8,7 +8,6 @@ const config = {
     jenkinsUrlRegEx: /regex/g
 };
 
-const bitbar = require('bitbar');
 const axios = require('axios');
 const _ = require('lodash');
 
