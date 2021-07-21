@@ -65,6 +65,8 @@ const getStatusIcon = (item) => {
         return "⏳";
     } else if (item.statusName === "Changes Planned") {
         return "🎧"
+    } else if (item.statusName === "Draft") {
+        return "📄"
     } else {
         return "❓"
     }
@@ -162,6 +164,7 @@ const getBuildIcon = (item) => {
             href: item.uri,
             submenu: []
         };
+        console.log(item);
         if (!_.isEmpty(item.devComments)) {
             result.submenu = _.concat(result.submenu, {
                 text: `💬 ${item.devComments.length} Comments`
@@ -192,11 +195,23 @@ const getBuildIcon = (item) => {
         header = {text: `👀 (${finalReviewDiffs.length})`};
     }
 
-    bitbar([
-        header,
-        bitbar.separator,
-        ...finalAuthorDiffs,
-        bitbar.separator,
-        ...finalReviewDiffs
-    ]);
+    console.log(header.text);
+    console.log('---')
+
+    finalAuthorDiffs?.forEach(authorDiff => {
+       console.log(`${authorDiff.text} | href=${authorDiff.href}`);
+       authorDiff.submenu?.forEach(submenu => {
+           console.log(`-- ${submenu.text} | href=${submenu.href}`);
+       })
+    })
+
+    if (finalReviewDiffs?.length !== 0) {
+        console.log('---');
+    }
+    finalReviewDiffs?.forEach(reviewDiff => {
+        console.log(`${reviewDiff.text} | href=${reviewDiff.href}`);
+        reviewDiff.submenu?.forEach(submenu => {
+            console.log(`-- ${submenu.text} | href=${submenu.href}`);
+        })
+    })
 })();
